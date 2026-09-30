@@ -22,10 +22,7 @@ jobs:
         working-directory: app
         env: { ANDROID_BUILD: "1" }
         run: |
-          node scripts/with-app-env.mjs vite build
-          [ -f .output/public/index.html ] || { [ -f .output/public/_shell.html ] && cp .output/public/_shell.html .output/public/index.html; }
-          find .output -maxdepth 3 | head -40
-          test -f .output/public/index.html
+          PATH="$PWD/node_modules/.bin:$PATH" node scripts/with-app-env.mjs vite build
       - name: Projet Android
         working-directory: app
         run: |
