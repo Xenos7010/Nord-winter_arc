@@ -11,6 +11,8 @@ jobs:
       - name: Décompresser le projet
         run: |
           mkdir app && unzip -q "$(ls *.zip | head -1)" -d app
+          sed -i 's|serverDir: "./server",|serverDir: process.env.ANDROID_BUILD ? false : "./server",|' app/vite.config.ts
+          grep -n serverDir app/vite.config.ts
       - uses: actions/setup-node@v4
         with: { node-version: 22 }
       - uses: actions/setup-java@v4
@@ -23,6 +25,9 @@ jobs:
         env: { ANDROID_BUILD: "1" }
         run: |
           PATH="$PWD/node_modules/.bin:$PATH" node scripts/with-app-env.mjs vite build
+          [ -f .output/public/index.html ] || { [ -f .output/public/_shell.html ] && cp .output/public/_shell.html .output/public/index.html; }
+          find .output -maxdepth 2 -not -path '*/assets/*'
+          test -f .output/public/index.html
       - name: Projet Android
         working-directory: app
         run: |
