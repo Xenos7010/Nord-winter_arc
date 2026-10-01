@@ -35,6 +35,14 @@ jobs:
         run: |
           npx cap add android
           npx cap sync android
+      - name: Icône de l'app
+        run: |
+          if [ -f icon.png ]; then
+            mkdir -p app/assets && cp icon.png app/assets/icon.png
+            cd app && npx --yes @capacitor/assets generate --android --iconBackgroundColor '#0b0b0d' --iconBackgroundColorDark '#0b0b0d'
+          else
+            echo "Pas d'icon.png, icône par défaut conservée"
+          fi
       - name: Compiler l'APK
         working-directory: app/android
         run: chmod +x gradlew && ./gradlew assembleDebug
