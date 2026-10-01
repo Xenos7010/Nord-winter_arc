@@ -11,8 +11,8 @@ jobs:
       - name: Décompresser le projet
         run: |
           mkdir app && unzip -q "$(ls *.zip | head -1)" -d app
-          sed -i 's|serverDir: "./server",|serverDir: process.env.ANDROID_BUILD ? false : "./server",|' app/vite.config.ts
-          grep -n serverDir app/vite.config.ts
+          sed -i 's|^import installPageTemplate from .*|const installPageTemplate = "";|' app/server/middleware/grok-pwa.ts
+          grep -n installPageTemplate app/server/middleware/grok-pwa.ts | head -3
       - uses: actions/setup-node@v4
         with: { node-version: 22 }
       - uses: actions/setup-java@v4
