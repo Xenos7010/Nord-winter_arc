@@ -6,6 +6,10 @@ on:
 jobs:
   apk:
     runs-on: ubuntu-latest
+    env:
+      KEYSTORE_B64: ${{ secrets.KEYSTORE_BASE64 }}
+      KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+      KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
     steps:
       - uses: actions/checkout@v4
       - name: Décompresser le projet
@@ -28,10 +32,12 @@ jobs:
           [ -f dist/client/index.html ] || { [ -f dist/client/_shell.html ] && cp dist/client/_shell.html dist/client/index.html; }
           find dist -maxdepth 2 -not -path '*/assets/*'
           test -f dist/client/index.html
-      - name: Projet Android
+      - name: Projet Android + Google Play Billing
         working-directory: app
         run: |
           npx cap add android
+          bash android-overlay/apply.sh
+          sed -i "s/versionCode 1/versionCode ${{ github.run_number }}/" android/app/build.gradle
           npx cap sync android
       - name: Icône de l'app
         run: |
@@ -41,11 +47,23 @@ jobs:
           else
             echo "Pas d'icon.png, icône par défaut conservée"
           fi
-      - name: Compiler l'APK
+      - name: APK de test
         working-directory: app/android
         run: chmod +x gradlew && ./gradlew assembleDebug
       - uses: actions/upload-artifact@v4
         with:
           name: NORD-apk
           path: app/android/app/build/outputs/apk/debug/app-debug.apk
-          
+      - name: Bundle signé pour Google Play (AAB)
+        if: env.KEYSTORE_B64 != ''
+        working-directory: app/android
+        run: |
+          echo "$KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/nord.jks"
+          ./gradlew bundleRelease
+          jarsigner -keystore "$RUNNER_TEMP/nord.jks" -storepass "$KEYSTORE_PASSWORD" -keypass "$KEYSTORE_PASSWORD" \
+            -sigalg SHA256withRSA -digestalg SHA-256 app/build/outputs/bundle/release/app-release.aab "$KEY_ALIAS"
+      - uses: actions/upload-artifact@v4
+        if: env.KEYSTORE_B64 != ''
+        with:
+          name: NORD-aab
+          path: app/android/app/build/outputs/bundle/release/app-release.aab
